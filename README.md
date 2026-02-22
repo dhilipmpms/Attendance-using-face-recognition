@@ -18,6 +18,7 @@ Cloud-ready Face Recognition Attendance Management System built with Django, Ope
 
 ## Installation Steps
 1. Navigate to the project directory:
+   ```cd Attendance-using-face-recognition
    ```
 2. Activate the virtual environment:
    ```bash
