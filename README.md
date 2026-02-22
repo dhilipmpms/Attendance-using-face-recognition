@@ -15,7 +15,7 @@ Cloud-ready Face Recognition Attendance Management System built with Django, Ope
 - Python 3.9+
 - Django 6.x
 - dlib, face_recognition, opencv-python
-
+- create a virtual environment 
 ## Installation Steps
 1. Navigate to the project directory:
    ```bash
