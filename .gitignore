@@ -1,0 +1,25 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django database
+db.sqlite3
+db.sqlite3-journal
+
+# Django media files (user-uploaded files shouldn't be tracked)
+media/
+
+# Virtual environments
+venv/
+.env
+.venv/
+env/
+
+# IDE / Editor folders (optional but recommended)
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

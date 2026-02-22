@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Attendance Records</h1>
+    <a href="{% url 'attendance:records_export' %}" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm">
+        <i class="fas fa-file-excel fa-sm text-white-50"></i> Export to CSV
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">All scan logs</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="recordsTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Reg No</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.date|date:"Y-m-d" }}</td>
+                        <td>{{ record.time|time:"H:i:s" }}</td>
+                        <td class="fw-bold">{{ record.student.reg_no }}</td>
+                        <td>{{ record.student.name }}</td>
+                        <td>{{ record.student.department }}</td>
+                        <td>
+                            {% if record.status == 'Present' %}
+                            <span class="badge bg-success">Present</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ record.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No attendance records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

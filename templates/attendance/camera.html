@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Live Attendance Scanner{% endblock %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Live Attendance Scanner</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Webcam Feed</h6>
+                <div class="d-flex align-items-center">
+                    <span id="recordingStatus" class="badge bg-secondary me-2">Stopped</span>
+                    <button class="btn btn-sm btn-success shadow-sm" id="btnStartCapture">
+                        <i class="fas fa-play fa-sm text-white-50"></i> Start
+                    </button>
+                    <button class="btn btn-sm btn-danger shadow-sm ms-2" id="btnStopCapture" disabled>
+                        <i class="fas fa-stop fa-sm text-white-50"></i> Stop
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column align-items-center justify-content-center"
+                    style="min-height: 480px; background-color: #000; border-radius: 8px; position:relative;">
+                    <video id="webcamVideo" width="640" height="480" autoplay playsinline
+                        style="border-radius: 8px; max-width: 100%; display:none;"></video>
+                    <canvas id="captureCanvas" style="display:none;"></canvas>
+                    <div id="cameraPlaceholder" class="text-center text-white">
+                        <i class="fas fa-camera fa-4x mb-3 text-gray-500"></i>
+                        <h5 class="text-gray-500">Camera is off</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Scans</h6>
+            </div>
+            <div class="card-body" id="recentScansContainer" style="max-height: 500px; overflow-y: auto;">
+                <div class="text-center text-muted py-5" id="noScansMsg">
+                    <i class="fas fa-history fa-2x mb-3"></i>
+                    <p>No attendances marked yet.</p>
+                </div>
+                <!-- Dynamic scan items will be injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .scan-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        animation: fadeIn 0.5s;
+    }
+
+    .scan-item:last-child {
+        border-bottom: none;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const webcamVideo = document.getElementById('webcamVideo');
+    const captureCanvas = document.getElementById('captureCanvas');
+    const btnStartCapture = document.getElementById('btnStartCapture');
+    const btnStopCapture = document.getElementById('btnStopCapture');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const recentScansContainer = document.getElementById('recentScansContainer');
+    const noScansMsg = document.getElementById('noScansMsg');
+
+    let stream = null;
+    let captureInterval = null;
+    const API_URL = "{% url 'attendance:api_recognize_face' %}";
+
+    btnStartCapture.addEventListener('click', async () => {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+            webcamVideo.srcObject = stream;
+            webcamVideo.style.display = 'block';
+            cameraPlaceholder.style.display = 'none';
+            btnStartCapture.disabled = true;
+            btnStopCapture.disabled = false;
+            recordingStatus.textContent = 'Active';
+            recordingStatus.className = 'badge bg-success me-2';
+
+            // Start capturing frames every 2 seconds
+            captureInterval = setInterval(captureAndSendFrame, 2000);
+        } catch (err) {
+            alert('Error accessing camera: ' + err.message);
+        }
+    });
+
+    btnStopCapture.addEventListener('click', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        if (captureInterval) {
+            clearInterval(captureInterval);
+        }
+        webcamVideo.style.display = 'none';
+        cameraPlaceholder.style.display = 'block';
+        btnStartCapture.disabled = false;
+        btnStopCapture.disabled = true;
+        recordingStatus.textContent = 'Stopped';
+        recordingStatus.className = 'badge bg-secondary me-2';
+    });
+
+    function captureAndSendFrame() {
+        if (!stream) return;
+
+        const context = captureCanvas.getContext('2d');
+        captureCanvas.width = webcamVideo.videoWidth;
+        captureCanvas.height = webcamVideo.videoHeight;
+        context.drawImage(webcamVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+
+        // Convert to base64
+        const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.8);
+
+        // Ensure no empty scans
+        if (dataUrl === "data:,") return; // Canvas empty
+
+        // Send to backend API
+        fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ image: dataUrl })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.match_found) {
+                    addRecentScan(data.student, data.time, data.status);
+                }
+            })
+            .catch(error => console.error('Error sending frame:', error));
+    }
+
+    function addRecentScan(student, time, status) {
+        if (noScansMsg) noScansMsg.style.display = 'none';
+
+        // Determine badge color
+        let badgeColor = status === 'Marked' ? 'bg-success' : 'bg-warning text-dark';
+
+        const scanHtml = `
+            <div class="scan-item">
+                <div class="me-3">
+                    <img src="${student.image_url || '{% static "img/default-avatar.png" %}'}" class="rounded-circle" width="50" height="50" style="object-fit:cover;">
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-0 fw-bold">${student.name}</h6>
+                    <small class="text-muted">${student.reg_no} | ${student.department}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge ${badgeColor}">${status}</span>
+                    <br>
+                    <small class="text-muted">${time}</small>
+                </div>
+            </div>
+        `;
+
+        // Add to top of list
+        recentScansContainer.insertAdjacentHTML('afterbegin', scanHtml);
+
+        // Keep only last 10
+        if (recentScansContainer.children.length > 10) {
+            recentScansContainer.removeChild(recentScansContainer.lastChild);
+        }
+    }
+
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

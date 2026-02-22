@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Attendance System{% endblock %} | Face Recognition</title>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fc;
+        }
+
+        #wrapper {
+            display: flex;
+            width: 100%;
+            align-items: stretch;
+        }
+
+        #sidebar {
+            min-width: 250px;
+            max-width: 250px;
+            min-height: 100vh;
+            background: #4e73df;
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        #sidebar .sidebar-header {
+            padding: 20px;
+            background: #3c5cd1;
+        }
+
+        #sidebar ul.components {
+            padding: 20px 0;
+        }
+
+        #sidebar ul p {
+            color: #fff;
+            padding: 10px;
+        }
+
+        #sidebar ul li a {
+            padding: 15px 20px;
+            font-size: 1rem;
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        #sidebar ul li a:hover,
+        #sidebar ul li.active>a {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #sidebar ul li a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        #content {
+            width: 100%;
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        .topbar {
+            height: 4.375rem;
+            background-color: #fff;
+            box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15);
+        }
+
+        /* Card custom styles */
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+        }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <div class="sidebar-header d-flex align-items-center">
+                <i class="fas fa-camera text-white fs-3 me-2"></i>
+                <h5 class="m-0 fw-bold">Face Authentication</h5>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'attendance:dashboard' %}"><i class="fas fa-fw fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+                <li class="{% if 'student' in request.resolver_match.url_name %}active{% endif %}">
+                    <a href="{% url 'students:list' %}"><i class="fas fa-fw fa-users"></i> Students</a>
+                </li>
+                <li class="{% if request.resolver_match.url_name == 'camera' %}active{% endif %}">
+                    <a href="{% url 'attendance:camera' %}"><i class="fas fa-fw fa-video"></i> Live Attendance</a>
+                </li>
+                <li class="{% if request.resolver_match.url_name == 'records' %}active{% endif %}">
+                    <a href="{% url 'attendance:records' %}"><i class="fas fa-fw fa-table"></i> Attendance Logs</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content" class="d-flex flex-column">
+
+            <!-- Topbar -->
+            <nav class="navbar navbar-expand navbar-light topbar mb-4 static-top px-4">
+                <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                    <i class="fa fa-bars"></i>
+                </button>
+
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown no-arrow d-flex align-items-center">
+                        {% if request.user.is_authenticated %}
+                        <span class="mr-2 d-none d-lg-inline text-gray-600 small me-3">
+                            Welcome, {{ request.user.username }}</span>
+                        <form method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i
+                                    class="fas fa-sign-out-alt"></i> Logout</button>
+                        </form>
+                        {% endif %}
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <div class="container-fluid flex-grow-1 px-4">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                {% block content %}
+                {% endblock %}
+            </div>
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white mt-auto py-4 shadow-sm mt-5">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto text-muted">
+                        <span>&copy; Attendance Management System using Face Recognition {% now "Y" %}</span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

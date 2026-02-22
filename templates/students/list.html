@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Students Management{% endblock %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Students Management</h1>
+    <a href="{% url 'students:add' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-plus fa-sm text-white-50"></i> Add New Student
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Registered Students</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover w-100" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th width="80">Photo</th>
+                        <th>Name</th>
+                        <th>Registration No</th>
+                        <th>Department</th>
+                        <th>Face Encoded</th>
+                        <th width="150">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td class="text-center">
+                            {% if student.image %}
+                            <img src="{{ student.image.url }}" class="rounded-circle" width="50" height="50"
+                                style="object-fit: cover;">
+                            {% else %}
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white mx-auto"
+                                style="width: 50px; height: 50px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle fw-bold">{{ student.name }}</td>
+                        <td class="align-middle">{{ student.reg_no }}</td>
+                        <td class="align-middle">{{ student.department }}</td>
+                        <td class="align-middle text-center">
+                            {% if student.face_encoding %}
+                            <span class="badge bg-success"><i class="fas fa-check-circle"></i> Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times-circle"></i> No</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            <a href="{% url 'students:edit' student.pk %}" class="btn btn-sm btn-info text-white">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'students:delete' student.pk %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No students registered yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
