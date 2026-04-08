@@ -12,38 +12,68 @@ Cloud-ready Face Recognition Attendance Management System built with Django, Ope
 - REST framework APIs.
 
 ## Requirements
-- Python 3.9+
+- Python 3.9+ (Python 3.12 recommended)
 - Django 6.x
 - dlib, face_recognition, opencv-python
-- create a virtual environment 
+
+> **Note for Windows users:** You may need to install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with "Desktop development with C++" and CMake selected, before installing the requirements so that `dlib` can compile successfully.
+
 ## Installation Steps
-1. Navigate to the project directory:
-   ```bash
-   cd Attendance-using-face-recognition
-   ```
-2. Activate the virtual environment:
-   ```bash
-   source venv/bin/activate
-   ```
-3. *(If not already installed)* Install the python packages:
-   ```bash
-   pip install -r requirements.txt
-   pip install setuptools
-   ```
-4. Run migrations:
-   ```bash
-   python manage.py migrate
-   ```
-5. A default superuser has been created with:
-   - **Username:** admin
-   - **Password:** admin123
-   *(If not present, you can create one with `python manage.py createsuperuser`)*
+### 1. Clone & Navigate to the Project
+```bash
+cd Attendance-using-face-recognition
+```
+
+### 2. Create the Virtual Environment
+**For Linux/macOS:**
+```bash
+python3 -m venv venv
+```
+**For Windows:**
+```cmd
+python -m venv venv
+```
+
+### 3. Activate the Virtual Environment
+**For Linux/macOS:**
+```bash
+source venv/bin/activate
+```
+**For Windows:**
+```cmd
+venv\Scripts\activate
+```
+*(If you encounter a script execution error on Windows, run PowerShell as Admin and execute `Set-ExecutionPolicy Unrestricted`)*
+
+### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Apply Database Migrations
+```bash
+python manage.py migrate
+```
+
+### 6. Admin Credentials
+A default superuser has been created (if the database is pre-populated):
+- **Username:** admin
+- **Password:** admin123
+
+*(If you need to create a new one, run `python manage.py createsuperuser`)*
 
 ## Running the Application
-To run the local server, execute:
+To start the local server, make sure your virtual environment is activated, then run:
+
+**For Linux/macOS:**
 ```bash
+python3 manage.py runserver
+```
+**For Windows:**
+```cmd
 python manage.py runserver
 ```
+
 Visit http://127.0.0.1:8000 in your web browser.
 
 ## How to use
