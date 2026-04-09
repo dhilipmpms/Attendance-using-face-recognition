@@ -5,7 +5,7 @@ Cloud-ready Face Recognition Attendance Management System built with Django, Ope
 ## Features
 - secure role-based login (Admin/Staff)
 - Real-time webcam face capture directly from the browser natively (Cloud ready).
-- Face encoding extraction utilizing `face_recognition` library.
+- Face training and extraction utilizing cross-platform OpenCV and LBPH.
 - Dashboard with detailed metrics and Chart.js visualizations.
 - Automatic anti-duplicate daily attendance tracking.
 - CSV Reports Export.
@@ -14,9 +14,9 @@ Cloud-ready Face Recognition Attendance Management System built with Django, Ope
 ## Requirements
 - Python 3.9+ (Python 3.12 recommended)
 - Django 6.x
-- dlib, face_recognition, opencv-python
+- opencv-python, opencv-contrib-python, pandas
 
-> **Note for Windows users:** You may need to install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with "Desktop development with C++" and CMake selected, before installing the requirements so that `dlib` can compile successfully.
+> **Cross Platform:** This project relies on OpenCV and LBPH for facial recognition instead of dlib. This allows seamless cross-platform setup on both Linux and Windows environments without complex C++ compilation steps.
 
 ## Installation Steps
 ### 1. Clone & Navigate to the Project
@@ -78,7 +78,7 @@ Visit http://127.0.0.1:8000 in your web browser.
 
 ## How to use
 1. Log in.
-2. Go to **Students** -> **Add New Student**. Upload a photo showing a clear face. Saving the student will compute the face encoding in background.
+2. Go to **Students** -> **Add New Student**. Upload a photo showing a clear face. Saving the student will automatically trigger the OpenCV LBPH training for all enrolled faces.
 3. Once the face is encoded successfully (Status: Yes), go to **Live Attendance**.
 4. Click **Start** to open your webcam. The system will capture a frame every 2 seconds, checking against the database, and automatically log attendance if a match is found.
 5. Go to **Attendance Logs** or **Dashboard** to export CSV reports.

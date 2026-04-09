@@ -86,11 +86,8 @@
             <div class="card-body text-center">
                 <img src="{{ object.image.url }}" class="img-fluid rounded border p-1" alt="Student Photo">
                 <div class="mt-3">
-                    {% if object.face_encoding %}
-                    <div class="alert alert-success">Face encoding is successfully extracted.</div>
-                    {% else %}
-                    <div class="alert alert-danger">Face encoding could not be extracted. Please upload a clear photo
-                        containing exactly 1 face.</div>
+                    {% if object.image %}
+                    <div class="alert alert-success">Face photo is uploaded and processed in LBPH model.</div>
                     {% endif %}
                 </div>
             </div>

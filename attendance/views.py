@@ -2,7 +2,9 @@ import base64
 import json
 import numpy as np
 import cv2
-import face_recognition
+import pandas as pd
+import os
+from django.conf import settings
 from datetime import date, datetime
 import csv
 
@@ -74,51 +76,43 @@ class FaceRecognitionAPIView(View):
             nparr = np.frombuffer(img_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
-            # Convert BGR (OpenCV) to RGB (face_recognition)
-            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # Convert to grayscale for LBPH
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # Find faces in current frame
-            face_locations = face_recognition.face_locations(rgb_img)
-            face_encodings = face_recognition.face_encodings(rgb_img, face_locations)
+            # Load the trained LBPH model
+            model_dir = os.path.join(settings.BASE_DIR, 'model')
+            model_path = os.path.join(model_dir, 'trainer.yml')
+            if not os.path.exists(model_path):
+                return JsonResponse({'success': False, 'message': 'Recognition model not trained yet.'})
+                
+            recognizer = cv2.face.LBPHFaceRecognizer_create()
+            recognizer.read(model_path)
             
-            if not face_encodings:
+            # Find face in current frame using Haar Cascade
+            cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+            detector = cv2.CascadeClassifier(cascade_path)
+            faces = detector.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5)
+            
+            if len(faces) == 0:
                 return JsonResponse({'success': False, 'message': 'No face detected'})
-            
-            # Load all students with encodings
-            students = Student.objects.exclude(face_encoding__isnull=True).exclude(face_encoding__exact='')
-            
-            known_face_encodings = []
-            known_face_ids = []
-            
-            for student in students:
-                try:
-                    encoding = np.array(json.loads(student.face_encoding))
-                    known_face_encodings.append(encoding)
-                    known_face_ids.append(student.id)
-                except:
-                    continue
-            
-            if not known_face_encodings:
-                return JsonResponse({'success': False, 'message': 'No registered faces in database'})
-            
-            # Match faces
+                
             match_found = False
             matched_student = None
             status_msg = ""
+            current_time = datetime.now().strftime("%I:%M %p")
+            today = date.today()
             
-            for face_encoding in face_encodings:
-                matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
-                face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+            for (x, y, w, h) in faces:
+                # Predict face
+                id_, confidence = recognizer.predict(gray[y:y+h, x:x+w])
                 
-                if matches and len(face_distances) > 0:
-                    best_match_index = np.argmin(face_distances)
-                    if matches[best_match_index]:
-                        student_id = known_face_ids[best_match_index]
-                        matched_student = Student.objects.get(id=student_id)
+                # Confidence 0 is a perfect match (distance in LBPH), typically < 85 is considered a match
+                if confidence < 85: 
+                    try:
+                        matched_student = Student.objects.get(id=id_)
                         match_found = True
                         
-                        # Mark Attendance
-                        today = date.today()
+                        # Mark Attendance in DB
                         att, created = Attendance.objects.get_or_create(
                             student=matched_student,
                             date=today,
@@ -126,14 +120,29 @@ class FaceRecognitionAPIView(View):
                         )
                         
                         status_msg = "Marked" if created else "Already Marked"
-                        break
+                        
+                        # Also mark attendance using Pandas in CSV (as requested)
+                        attendance_file = os.path.join(settings.BASE_DIR, 'Attendance.csv')
+                        df = pd.DataFrame([
+                            [today.strftime("%Y-%m-%d"), current_time, matched_student.reg_no, matched_student.name, matched_student.department, 'Present']
+                        ], columns=['Date', 'Time', 'Registration No', 'Name', 'Department', 'Status'])
+                        
+                        # Append without headers if file exists, else create with headers
+                        if not os.path.exists(attendance_file):
+                            df.to_csv(attendance_file, index=False)
+                        else:
+                            df.to_csv(attendance_file, mode='a', header=False, index=False)
+                            
+                        break # Only process one verified face per frame
+                    except Student.DoesNotExist:
+                        continue
             
             if match_found:
                 return JsonResponse({
                     'success': True,
                     'match_found': True,
                     'status': status_msg,
-                    'time': datetime.now().strftime("%I:%M %p"),
+                    'time': current_time,
                     'student': {
                         'name': matched_student.name,
                         'reg_no': matched_student.reg_no,
